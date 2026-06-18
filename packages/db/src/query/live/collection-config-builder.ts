@@ -1038,9 +1038,16 @@ export class CollectionConfigBuilder<
   }
 
   private allCollectionsReady() {
-    return Object.values(this.collections).every((collection) =>
-      collection.isReady(),
-    )
+    // Lazy sources load on-demand and aren't ready until first queried, so
+    // excluding them lets the live query mark ready instead of blocking forever.
+    for (const [alias, collectionId] of Object.entries(
+      this.compiledAliasToCollectionId,
+    )) {
+      if (this.lazySources.has(alias)) continue
+      const collection = this.collections[collectionId]
+      if (collection && !collection.isReady()) return false
+    }
+    return true
   }
 
   /**
